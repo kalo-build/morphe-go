@@ -1,6 +1,6 @@
 package registry
 
-import "github.com/kaloseia/morphe-go/pkg/yaml"
+import "github.com/kalo-build/morphe-go/pkg/yaml"
 
 func NewRegistry() *Registry {
 	return &Registry{

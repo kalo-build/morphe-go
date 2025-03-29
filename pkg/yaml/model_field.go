@@ -1,6 +1,6 @@
 package yaml
 
-import "github.com/kaloseia/clone"
+import "github.com/kalo-build/clone"
 
 type ModelField struct {
 	Type       ModelFieldType `yaml:"type"`

@@ -1,7 +1,7 @@
 package registry
 
 import (
-	"github.com/kaloseia/morphe-go/pkg/registry/cfg"
+	"github.com/kalo-build/morphe-go/pkg/registry/cfg"
 )
 
 type LoadMorpheRegistryHooks struct {

@@ -3,7 +3,7 @@ package yaml
 import (
 	"log"
 
-	"github.com/kaloseia/clone"
+	"github.com/kalo-build/clone"
 )
 
 type Model struct {

@@ -1,9 +1,9 @@
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/kaloseia/clone v0.0.0-20240601081950-41de0e12ccb4 h1:KrvtOfoRvXaRJgAOqIRd4CgBqg4lZ2p0qBz6sRg4qW8=
-github.com/kaloseia/clone v0.0.0-20240601081950-41de0e12ccb4/go.mod h1:7WCoAMMzw+oRQq5HdR+v1emyTQDkSGw1W47f2zqguoE=
-github.com/kaloseia/go-util v0.0.0-20240710152636-8268868e8c7c h1:xseBgWbE6TLnvDBQ4+1PpSpGOZMWB5tmCuNuXl9P1z8=
-github.com/kaloseia/go-util v0.0.0-20240710152636-8268868e8c7c/go.mod h1:gLFd0eirWSNNgX7c6fI5rbOimTII2Mpd/m91tq0YEtg=
+github.com/kalo-build/clone v0.0.0-20250329082958-41db0353412f h1:R504QVH8R/49EAkHNLnru3P0tlrKsIWeicC2S0RBW9k=
+github.com/kalo-build/clone v0.0.0-20250329082958-41db0353412f/go.mod h1:mrEbrIr3UerZqKbz6hBrYRVaIBt65WQqlAi2eIQD2Ao=
+github.com/kalo-build/go-util v0.0.0-20250329083327-00e97aeff9b7 h1:JMOvOOWnDukJAfbJO/x6W/Fgl5ewcZyNQEqt5WxpGQ8=
+github.com/kalo-build/go-util v0.0.0-20250329083327-00e97aeff9b7/go.mod h1:HYeT4Vurfb0EcbqZeTf0sUY5rGXt/sx4liwsiRUc7Sw=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/stretchr/testify v1.9.0 h1:HtqpIVDClZ4nwg75+f6Lvsy/wHu+3BoSGCbBAcpTsTg=

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/kaloseia/clone"
-	"github.com/kaloseia/morphe-go/pkg/yaml"
-	"github.com/kaloseia/morphe-go/pkg/yamlfile"
+	"github.com/kalo-build/clone"
+	"github.com/kalo-build/morphe-go/pkg/yaml"
+	"github.com/kalo-build/morphe-go/pkg/yamlfile"
 )
 
 const EnumFileSuffix = ".enum"

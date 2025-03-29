@@ -1,7 +1,7 @@
 package yaml
 
 import (
-	"github.com/kaloseia/clone"
+	"github.com/kalo-build/clone"
 	"gopkg.in/yaml.v3"
 )
 

@@ -3,7 +3,7 @@ package yaml
 import (
 	"strings"
 
-	"github.com/kaloseia/clone"
+	"github.com/kalo-build/clone"
 )
 
 type Entity struct {

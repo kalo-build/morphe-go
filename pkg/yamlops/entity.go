@@ -3,7 +3,7 @@ package yamlops
 import (
 	"fmt"
 
-	"github.com/kaloseia/morphe-go/pkg/yaml"
+	"github.com/kalo-build/morphe-go/pkg/yaml"
 )
 
 func GetEntityPrimaryIdentifierFieldName(entityDef yaml.Entity) (string, error) {

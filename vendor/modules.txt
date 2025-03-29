@@ -1,12 +1,12 @@
 # github.com/davecgh/go-spew v1.1.1
 ## explicit
 github.com/davecgh/go-spew/spew
-# github.com/kaloseia/clone v0.0.0-20240601081950-41de0e12ccb4
+# github.com/kalo-build/clone v0.0.0-20250329082958-41db0353412f
 ## explicit; go 1.21.6
-github.com/kaloseia/clone
-# github.com/kaloseia/go-util v0.0.0-20240710152636-8268868e8c7c
+github.com/kalo-build/clone
+# github.com/kalo-build/go-util v0.0.0-20250329083327-00e97aeff9b7
 ## explicit; go 1.21.6
-github.com/kaloseia/go-util/core
+github.com/kalo-build/go-util/core
 # github.com/pmezard/go-difflib v1.0.0
 ## explicit
 github.com/pmezard/go-difflib/difflib

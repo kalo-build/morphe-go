@@ -3,7 +3,7 @@ package yaml
 import (
 	"fmt"
 
-	"github.com/kaloseia/go-util/core"
+	"github.com/kalo-build/go-util/core"
 )
 
 type Enum struct {
