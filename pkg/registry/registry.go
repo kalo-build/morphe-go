@@ -2,6 +2,8 @@ package registry
 
 import (
 	"fmt"
+	"log"
+	"os"
 	"sync"
 
 	"github.com/kalo-build/clone"
@@ -263,9 +265,22 @@ func (r *Registry) DeepClone() *Registry {
 }
 
 func (r *Registry) LoadEnumsFromDirectory(dirPath string) error {
+	// Check if directory exists
+	if exists, err := directoryExists(dirPath); err != nil {
+		return err
+	} else if !exists {
+		log.Printf("Warning: Enums directory does not exist: %s. Skipping enum loading.", dirPath)
+		return nil
+	}
+
 	allEnums, unmarshalErr := yamlfile.UnmarshalAllYAMLFiles[yaml.Enum](dirPath, EnumFileSuffix)
 	if unmarshalErr != nil {
 		return unmarshalErr
+	}
+
+	if len(allEnums) == 0 {
+		log.Printf("Warning: No enum files found in directory: %s. Skipping enum loading.", dirPath)
+		return nil
 	}
 
 	loadErr := r.loadEnumDefinitions(allEnums)
@@ -273,9 +288,22 @@ func (r *Registry) LoadEnumsFromDirectory(dirPath string) error {
 }
 
 func (r *Registry) LoadModelsFromDirectory(dirPath string) error {
+	// Check if directory exists
+	if exists, err := directoryExists(dirPath); err != nil {
+		return err
+	} else if !exists {
+		log.Printf("Warning: Models directory does not exist: %s. Skipping model loading.", dirPath)
+		return nil
+	}
+
 	allModels, unmarshalErr := yamlfile.UnmarshalAllYAMLFiles[yaml.Model](dirPath, ModelFileSuffix)
 	if unmarshalErr != nil {
 		return unmarshalErr
+	}
+
+	if len(allModels) == 0 {
+		log.Printf("Warning: No model files found in directory: %s. Skipping model loading.", dirPath)
+		return nil
 	}
 
 	loadErr := r.loadModelDefinitions(allModels)
@@ -283,9 +311,27 @@ func (r *Registry) LoadModelsFromDirectory(dirPath string) error {
 }
 
 func (r *Registry) LoadEntitiesFromDirectory(dirPath string) error {
+	// Check if directory exists
+	if exists, err := directoryExists(dirPath); err != nil {
+		return err
+	} else if !exists {
+		log.Printf("Warning: Entities directory does not exist: %s. Skipping entity loading.", dirPath)
+		return nil
+	}
+
 	allEntities, unmarshalErr := yamlfile.UnmarshalAllYAMLFiles[yaml.Entity](dirPath, EntityFileSuffix)
 	if unmarshalErr != nil {
 		return unmarshalErr
+	}
+
+	if len(allEntities) == 0 {
+		log.Printf("Warning: No entity files found in directory: %s. Skipping entity loading.", dirPath)
+		return nil
+	}
+
+	// If entities are present but models are not, we should still enforce the dependency
+	if len(r.models) == 0 {
+		return fmt.Errorf("attempted to load entities but no models are defined in registry")
 	}
 
 	loadErr := r.loadEntityDefinitions(allEntities)
@@ -293,13 +339,38 @@ func (r *Registry) LoadEntitiesFromDirectory(dirPath string) error {
 }
 
 func (r *Registry) LoadStructuresFromDirectory(dirPath string) error {
+	// Check if directory exists
+	if exists, err := directoryExists(dirPath); err != nil {
+		return err
+	} else if !exists {
+		log.Printf("Warning: Structures directory does not exist: %s. Skipping structure loading.", dirPath)
+		return nil
+	}
+
 	allStructures, unmarshalErr := yamlfile.UnmarshalAllYAMLFiles[yaml.Structure](dirPath, StructureFileSuffix)
 	if unmarshalErr != nil {
 		return unmarshalErr
 	}
 
+	if len(allStructures) == 0 {
+		log.Printf("Warning: No structure files found in directory: %s. Skipping structure loading.", dirPath)
+		return nil
+	}
+
 	loadErr := r.loadStructureDefinitions(allStructures)
 	return loadErr
+}
+
+// Helper function to check if a directory exists
+func directoryExists(path string) (bool, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	return info.IsDir(), nil
 }
 
 func (r *Registry) loadEnumDefinitions(allEnums map[string]yaml.Enum) error {
