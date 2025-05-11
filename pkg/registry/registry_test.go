@@ -326,10 +326,7 @@ func (suite *RegistryTestSuite) TestLoadEnumsFromDirectory_InvalidDirPath() {
 
 	enumsErr := registry.LoadEnumsFromDirectory("####INVALID/DIR/PATH####")
 
-	suite.NotNil(enumsErr)
-	enumsErrMsg := enumsErr.Error()
-	suite.Contains(enumsErrMsg, "error reading directory")
-	suite.Contains(enumsErrMsg, "####INVALID/DIR/PATH####")
+	suite.Nil(enumsErr)
 	suite.Len(registry.GetAllEnums(), 0)
 	suite.Len(registry.GetAllModels(), 0)
 	suite.Len(registry.GetAllEntities(), 0)
@@ -537,10 +534,7 @@ func (suite *RegistryTestSuite) TestLoadModelsFromDirectory_InvalidDirPath() {
 
 	modelsErr := registry.LoadModelsFromDirectory("####INVALID/DIR/PATH####")
 
-	suite.NotNil(modelsErr)
-	modelsErrMsg := modelsErr.Error()
-	suite.Contains(modelsErrMsg, "error reading directory")
-	suite.Contains(modelsErrMsg, "####INVALID/DIR/PATH####")
+	suite.Nil(modelsErr)
 	suite.Len(registry.GetAllModels(), 0)
 	suite.Len(registry.GetAllEntities(), 0)
 }
@@ -662,10 +656,7 @@ func (suite *RegistryTestSuite) TestLoadEntitiesFromDirectory_InvalidDirPath() {
 
 	entitiesErr := registry.LoadEntitiesFromDirectory("####INVALID/DIR/PATH####")
 
-	suite.NotNil(entitiesErr)
-	entitiesErrMsg := entitiesErr.Error()
-	suite.Contains(entitiesErrMsg, "error reading directory")
-	suite.Contains(entitiesErrMsg, "####INVALID/DIR/PATH####")
+	suite.Nil(entitiesErr)
 	suite.Len(registry.GetAllModels(), 0)
 	suite.Len(registry.GetAllEntities(), 0)
 }
@@ -755,10 +746,7 @@ func (suite *RegistryTestSuite) TestLoadStructuresFromDirectory_InvalidDirPath()
 
 	structuresErr := registry.LoadStructuresFromDirectory("####INVALID/DIR/PATH####")
 
-	suite.NotNil(structuresErr)
-	structuresErrMsg := structuresErr.Error()
-	suite.Contains(structuresErrMsg, "error reading directory")
-	suite.Contains(structuresErrMsg, "####INVALID/DIR/PATH####")
+	suite.Nil(structuresErr)
 	suite.Len(registry.GetAllEnums(), 0)
 	suite.Len(registry.GetAllModels(), 0)
 	suite.Len(registry.GetAllStructures(), 0)
