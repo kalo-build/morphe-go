@@ -23,10 +23,55 @@ type Registry struct {
 	entities   map[string]yaml.Entity    `yaml:"entities"`
 }
 
+// ValidateRegistry checks if the registry state is valid
+// Specifically, it ensures that if entities exist, models must also exist
+func (r *Registry) ValidateRegistry() error {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+
+	if len(r.entities) > 0 && len(r.models) == 0 {
+		return fmt.Errorf("invalid registry state: entities exist but no models are defined")
+	}
+
+	return nil
+}
+
+// HasEnums returns true if the registry has enums defined
+func (r *Registry) HasEnums() bool {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+	return len(r.enums) > 0
+}
+
+// HasModels returns true if the registry has models defined
+func (r *Registry) HasModels() bool {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+	return len(r.models) > 0
+}
+
+// HasStructures returns true if the registry has structures defined
+func (r *Registry) HasStructures() bool {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+	return len(r.structures) > 0
+}
+
+// HasEntities returns true if the registry has entities defined
+func (r *Registry) HasEntities() bool {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+	return len(r.entities) > 0
+}
+
 // SetEnum is a thread-safe way to write an enum to the registry
 func (r *Registry) SetEnum(name string, enum yaml.Enum) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
+
+	if r.enums == nil {
+		r.enums = make(map[string]yaml.Enum)
+	}
 
 	r.enums[name] = enum
 }
@@ -35,6 +80,11 @@ func (r *Registry) SetEnum(name string, enum yaml.Enum) {
 func (r *Registry) GetEnum(name string) (yaml.Enum, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
+
+	if r.enums == nil {
+		return yaml.Enum{}, fmt.Errorf("no enums in registry, enum with name '%s' not found", name)
+	}
+
 	enum, enumFound := r.enums[name]
 	if !enumFound {
 		return yaml.Enum{}, fmt.Errorf("enum with name '%s' not found registry", name)
@@ -48,6 +98,10 @@ func (r *Registry) GetAllEnums() map[string]yaml.Enum {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
+	if r.enums == nil {
+		return make(map[string]yaml.Enum)
+	}
+
 	enumsClone := clone.DeepCloneMap(r.enums)
 	return enumsClone
 }
@@ -57,6 +111,10 @@ func (r *Registry) SetModel(name string, model yaml.Model) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
+	if r.models == nil {
+		r.models = make(map[string]yaml.Model)
+	}
+
 	r.models[name] = model
 }
 
@@ -64,6 +122,11 @@ func (r *Registry) SetModel(name string, model yaml.Model) {
 func (r *Registry) GetModel(name string) (yaml.Model, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
+
+	if r.models == nil {
+		return yaml.Model{}, fmt.Errorf("no models in registry, model with name '%s' not found", name)
+	}
+
 	model, modelFound := r.models[name]
 	if !modelFound {
 		return yaml.Model{}, fmt.Errorf("model with name '%s' not found registry", name)
@@ -77,6 +140,10 @@ func (r *Registry) GetAllModels() map[string]yaml.Model {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
+	if r.models == nil {
+		return make(map[string]yaml.Model)
+	}
+
 	modelsClone := clone.DeepCloneMap(r.models)
 	return modelsClone
 }
@@ -86,6 +153,10 @@ func (r *Registry) SetEntity(name string, entity yaml.Entity) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
+	if r.entities == nil {
+		r.entities = make(map[string]yaml.Entity)
+	}
+
 	r.entities[name] = entity
 }
 
@@ -93,6 +164,11 @@ func (r *Registry) SetEntity(name string, entity yaml.Entity) {
 func (r *Registry) GetEntity(name string) (yaml.Entity, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
+
+	if r.entities == nil {
+		return yaml.Entity{}, fmt.Errorf("no entities in registry, entity with name '%s' not found", name)
+	}
+
 	entity, entityFound := r.entities[name]
 	if !entityFound {
 		return yaml.Entity{}, fmt.Errorf("entity with name '%s' not found registry", name)
@@ -106,6 +182,10 @@ func (r *Registry) GetAllEntities() map[string]yaml.Entity {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
+	if r.entities == nil {
+		return make(map[string]yaml.Entity)
+	}
+
 	entitiesClone := clone.DeepCloneMap(r.entities)
 	return entitiesClone
 }
@@ -115,6 +195,10 @@ func (r *Registry) SetStructure(name string, structure yaml.Structure) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
+	if r.structures == nil {
+		r.structures = make(map[string]yaml.Structure)
+	}
+
 	r.structures[name] = structure
 }
 
@@ -122,6 +206,11 @@ func (r *Registry) SetStructure(name string, structure yaml.Structure) {
 func (r *Registry) GetStructure(name string) (yaml.Structure, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
+
+	if r.structures == nil {
+		return yaml.Structure{}, fmt.Errorf("no structures in registry, structure with name '%s' not found", name)
+	}
+
 	structure, structureFound := r.structures[name]
 	if !structureFound {
 		return yaml.Structure{}, fmt.Errorf("structure with name '%s' not found registry", name)
@@ -135,6 +224,10 @@ func (r *Registry) GetAllStructures() map[string]yaml.Structure {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
+	if r.structures == nil {
+		return make(map[string]yaml.Structure)
+	}
+
 	structuresClone := clone.DeepCloneMap(r.structures)
 	return structuresClone
 }
@@ -144,10 +237,26 @@ func (r *Registry) DeepClone() *Registry {
 	defer r.mutex.RUnlock()
 
 	registryCopy := &Registry{
-		enums:      clone.DeepCloneMap(r.enums),
-		models:     clone.DeepCloneMap(r.models),
-		structures: clone.DeepCloneMap(r.structures),
-		entities:   clone.DeepCloneMap(r.entities),
+		enums:      make(map[string]yaml.Enum),
+		models:     make(map[string]yaml.Model),
+		structures: make(map[string]yaml.Structure),
+		entities:   make(map[string]yaml.Entity),
+	}
+
+	if r.enums != nil {
+		registryCopy.enums = clone.DeepCloneMap(r.enums)
+	}
+
+	if r.models != nil {
+		registryCopy.models = clone.DeepCloneMap(r.models)
+	}
+
+	if r.structures != nil {
+		registryCopy.structures = clone.DeepCloneMap(r.structures)
+	}
+
+	if r.entities != nil {
+		registryCopy.entities = clone.DeepCloneMap(r.entities)
 	}
 
 	return registryCopy
@@ -247,6 +356,12 @@ func (r *Registry) loadEntityDefinitions(allEntities map[string]yaml.Entity) err
 
 		r.entities[entity.Name] = entity
 	}
+
+	// Check if models are defined when entities are loaded
+	if len(r.entities) > 0 && len(r.models) == 0 {
+		return fmt.Errorf("attempted to load entities but no models are defined in registry")
+	}
+
 	return nil
 }
 

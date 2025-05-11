@@ -40,6 +40,238 @@ func (suite *RegistryTestSuite) TearDownTest() {
 	suite.TestDirPath = ""
 }
 
+// TestEmptyRegistryHasNoTypes verifies that an empty registry reports having no types
+func (suite *RegistryTestSuite) TestEmptyRegistryHasNoTypes() {
+	r := registry.NewRegistry()
+
+	suite.False(r.HasEnums())
+	suite.False(r.HasModels())
+	suite.False(r.HasStructures())
+	suite.False(r.HasEntities())
+}
+
+// TestRegistryWithEnumsReportsHavingEnums verifies that a registry with enums reports having enums
+func (suite *RegistryTestSuite) TestRegistryWithEnumsReportsHavingEnums() {
+	r := registry.NewRegistry()
+
+	r.SetEnum("TestEnum", yaml.Enum{Name: "TestEnum"})
+
+	suite.True(r.HasEnums())
+	suite.False(r.HasModels())
+	suite.False(r.HasStructures())
+	suite.False(r.HasEntities())
+}
+
+// TestRegistryWithModelsReportsHavingModels verifies that a registry with models reports having models
+func (suite *RegistryTestSuite) TestRegistryWithModelsReportsHavingModels() {
+	r := registry.NewRegistry()
+
+	r.SetModel("TestModel", yaml.Model{Name: "TestModel"})
+
+	suite.False(r.HasEnums())
+	suite.True(r.HasModels())
+	suite.False(r.HasStructures())
+	suite.False(r.HasEntities())
+}
+
+// TestRegistryWithStructuresReportsHavingStructures verifies that a registry with structures reports having structures
+func (suite *RegistryTestSuite) TestRegistryWithStructuresReportsHavingStructures() {
+	r := registry.NewRegistry()
+
+	r.SetStructure("TestStructure", yaml.Structure{Name: "TestStructure"})
+
+	suite.False(r.HasEnums())
+	suite.False(r.HasModels())
+	suite.True(r.HasStructures())
+	suite.False(r.HasEntities())
+}
+
+// TestRegistryWithEntitiesReportsHavingEntities verifies that a registry with entities reports having entities
+func (suite *RegistryTestSuite) TestRegistryWithEntitiesReportsHavingEntities() {
+	r := registry.NewRegistry()
+
+	// First add a model since entities require models
+	r.SetModel("TestModel", yaml.Model{Name: "TestModel"})
+	r.SetEntity("TestEntity", yaml.Entity{Name: "TestEntity"})
+
+	suite.False(r.HasEnums())
+	suite.True(r.HasModels())
+	suite.False(r.HasStructures())
+	suite.True(r.HasEntities())
+}
+
+// TestEmptyRegistryValidates verifies that an empty registry passes validation
+func (suite *RegistryTestSuite) TestEmptyRegistryValidates() {
+	r := registry.NewRegistry()
+
+	suite.Nil(r.ValidateRegistry())
+}
+
+// TestRegistryWithOnlyModelsValidates verifies that a registry with only models passes validation
+func (suite *RegistryTestSuite) TestRegistryWithOnlyModelsValidates() {
+	r := registry.NewRegistry()
+
+	r.SetModel("TestModel", yaml.Model{Name: "TestModel"})
+
+	suite.Nil(r.ValidateRegistry())
+}
+
+// TestRegistryWithOnlyEnumsValidates verifies that a registry with only enums passes validation
+func (suite *RegistryTestSuite) TestRegistryWithOnlyEnumsValidates() {
+	r := registry.NewRegistry()
+
+	r.SetEnum("TestEnum", yaml.Enum{Name: "TestEnum"})
+
+	suite.Nil(r.ValidateRegistry())
+}
+
+// TestRegistryWithOnlyStructuresValidates verifies that a registry with only structures passes validation
+func (suite *RegistryTestSuite) TestRegistryWithOnlyStructuresValidates() {
+	r := registry.NewRegistry()
+
+	r.SetStructure("TestStructure", yaml.Structure{Name: "TestStructure"})
+
+	suite.Nil(r.ValidateRegistry())
+}
+
+// TestRegistryWithEntitiesButNoModelsFailsValidation verifies that a registry with entities but no models fails validation
+func (suite *RegistryTestSuite) TestRegistryWithEntitiesButNoModelsFailsValidation() {
+	r := registry.NewRegistry()
+
+	r.SetEntity("TestEntity", yaml.Entity{Name: "TestEntity"})
+
+	validationErr := r.ValidateRegistry()
+	suite.NotNil(validationErr)
+	suite.Contains(validationErr.Error(), "invalid registry state: entities exist but no models are defined")
+}
+
+// TestRegistryWithEntitiesAndModelsValidates verifies that a registry with both entities and models passes validation
+func (suite *RegistryTestSuite) TestRegistryWithEntitiesAndModelsValidates() {
+	r := registry.NewRegistry()
+
+	r.SetModel("TestModel", yaml.Model{Name: "TestModel"})
+	r.SetEntity("TestEntity", yaml.Entity{Name: "TestEntity"})
+
+	suite.Nil(r.ValidateRegistry())
+}
+
+// TestGetAllMethodsReturnEmptyMapsForNilMaps verifies that GetAll methods return empty maps for nil maps
+func (suite *RegistryTestSuite) TestGetAllMethodsReturnEmptyMapsForNilMaps() {
+	r := registry.NewRegistry()
+
+	suite.Empty(r.GetAllEnums())
+	suite.Empty(r.GetAllModels())
+	suite.Empty(r.GetAllStructures())
+	suite.Empty(r.GetAllEntities())
+}
+
+// TestGetMethodsReturnErrorForNonExistentItems verifies that Get methods return error for non-existent items
+func (suite *RegistryTestSuite) TestGetMethodsReturnErrorForNonExistentItems() {
+	r := registry.NewRegistry()
+
+	_, enumErr := r.GetEnum("NonExistentEnum")
+	suite.NotNil(enumErr)
+
+	_, modelErr := r.GetModel("NonExistentModel")
+	suite.NotNil(modelErr)
+
+	_, structureErr := r.GetStructure("NonExistentStructure")
+	suite.NotNil(structureErr)
+
+	_, entityErr := r.GetEntity("NonExistentEntity")
+	suite.NotNil(entityErr)
+}
+
+// TestSetMethodsCreateMapsIfNil verifies that Set methods create maps if they are nil
+func (suite *RegistryTestSuite) TestSetMethodsCreateMapsIfNil() {
+	r := registry.NewRegistry()
+
+	r.SetEnum("TestEnum", yaml.Enum{Name: "TestEnum"})
+	r.SetModel("TestModel", yaml.Model{Name: "TestModel"})
+	r.SetStructure("TestStructure", yaml.Structure{Name: "TestStructure"})
+	r.SetEntity("TestEntity", yaml.Entity{Name: "TestEntity"})
+
+	// Verify the items were added
+	enum, enumErr := r.GetEnum("TestEnum")
+	suite.Nil(enumErr)
+	suite.Equal("TestEnum", enum.Name)
+
+	model, modelErr := r.GetModel("TestModel")
+	suite.Nil(modelErr)
+	suite.Equal("TestModel", model.Name)
+
+	structure, structureErr := r.GetStructure("TestStructure")
+	suite.Nil(structureErr)
+	suite.Equal("TestStructure", structure.Name)
+
+	entity, entityErr := r.GetEntity("TestEntity")
+	suite.Nil(entityErr)
+	suite.Equal("TestEntity", entity.Name)
+}
+
+// TestLoadingEntitiesWithoutModelsReturnsError verifies that loading entities without models returns an error
+func (suite *RegistryTestSuite) TestLoadingEntitiesWithoutModelsReturnsError() {
+	r := registry.NewRegistry()
+
+	entitiesErr := r.LoadEntitiesFromDirectory(suite.EntitiesDirPath)
+
+	suite.NotNil(entitiesErr)
+	suite.Contains(entitiesErr.Error(), "attempted to load entities but no models are defined in registry")
+}
+
+// TestLoadingModelsFirstAllowsLoadingEntities verifies that loading models first allows entities to be loaded
+func (suite *RegistryTestSuite) TestLoadingModelsFirstAllowsLoadingEntities() {
+	r := registry.NewRegistry()
+
+	modelsErr := r.LoadModelsFromDirectory(suite.ModelsDirPath)
+	suite.Nil(modelsErr)
+
+	entitiesErr := r.LoadEntitiesFromDirectory(suite.EntitiesDirPath)
+	suite.Nil(entitiesErr)
+
+	suite.True(r.HasModels())
+	suite.True(r.HasEntities())
+}
+
+// TestDeepCloneHandlesEmptyRegistry verifies that DeepClone properly handles an empty registry
+func (suite *RegistryTestSuite) TestDeepCloneHandlesEmptyRegistry() {
+	r := registry.NewRegistry()
+
+	clone := r.DeepClone()
+
+	suite.NotSame(r, clone)
+	suite.False(clone.HasEnums())
+	suite.False(clone.HasModels())
+	suite.False(clone.HasStructures())
+	suite.False(clone.HasEntities())
+}
+
+// TestDeepCloneHandlesPartiallyPopulatedRegistry verifies that DeepClone properly handles a partially populated registry
+func (suite *RegistryTestSuite) TestDeepCloneHandlesPartiallyPopulatedRegistry() {
+	r := registry.NewRegistry()
+
+	r.SetEnum("TestEnum", yaml.Enum{Name: "TestEnum"})
+	r.SetModel("TestModel", yaml.Model{Name: "TestModel"})
+
+	clone := r.DeepClone()
+
+	suite.NotSame(r, clone)
+	suite.True(clone.HasEnums())
+	suite.True(clone.HasModels())
+	suite.False(clone.HasStructures())
+	suite.False(clone.HasEntities())
+
+	// Verify enum was properly cloned
+	enum, err := clone.GetEnum("TestEnum")
+	suite.Nil(err)
+	suite.Equal("TestEnum", enum.Name)
+
+	// Verify model was properly cloned
+	model, err := clone.GetModel("TestModel")
+	suite.Nil(err)
+	suite.Equal("TestModel", model.Name)
+}
+
 func (suite *RegistryTestSuite) TestLoadEnumsFromDirectory() {
 	registry := registry.NewRegistry()
 
@@ -331,10 +563,14 @@ func (suite *RegistryTestSuite) TestLoadModelsFromDirectory_ConflictingName() {
 func (suite *RegistryTestSuite) TestLoadEntitiesFromDirectory() {
 	registry := registry.NewRegistry()
 
+	// Load models first to avoid validation error
+	modelsErr := registry.LoadModelsFromDirectory(suite.ModelsDirPath)
+	suite.Nil(modelsErr)
+
 	entitiesErr := registry.LoadEntitiesFromDirectory(suite.EntitiesDirPath)
 
 	suite.Nil(entitiesErr)
-	suite.Len(registry.GetAllModels(), 0)
+	suite.Len(registry.GetAllModels(), 4)
 	suite.Len(registry.GetAllEntities(), 2)
 
 	entity0, entityErr0 := registry.GetEntity("Company")
@@ -436,6 +672,10 @@ func (suite *RegistryTestSuite) TestLoadEntitiesFromDirectory_InvalidDirPath() {
 
 func (suite *RegistryTestSuite) TestLoadEntitiesFromDirectory_ConflictingName() {
 	registry := registry.NewRegistry()
+
+	// Load models first to avoid validation error
+	modelsErr := registry.LoadModelsFromDirectory(suite.ModelsDirPath)
+	suite.Nil(modelsErr)
 
 	registry.SetEntity("Company", yaml.Entity{Name: "Company"})
 

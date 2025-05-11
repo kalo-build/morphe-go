@@ -17,6 +17,12 @@ func LoadMorpheRegistry(hooks LoadMorpheRegistryHooks, config cfg.MorpheLoadRegi
 		return nil, triggerLoadRegistryFailure(hooks, config, r, loadErr)
 	}
 
+	// Validate the registry to ensure consistency
+	validateErr := r.ValidateRegistry()
+	if validateErr != nil {
+		return nil, triggerLoadRegistryFailure(hooks, config, r, validateErr)
+	}
+
 	r, loadSuccessErr := triggerLoadRegistrySuccess(hooks, r)
 	if loadSuccessErr != nil {
 		return nil, triggerLoadRegistryFailure(hooks, config, r, loadSuccessErr)
