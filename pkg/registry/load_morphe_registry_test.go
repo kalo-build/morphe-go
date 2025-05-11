@@ -212,7 +212,7 @@ func (suite *LoadMorpheRegistryTestSuite) TestLoadMorpheRegistry() {
 	suite.ElementsMatch(entityID00.Fields, []string{"UUID"})
 }
 
-func (suite *LoadMorpheRegistryTestSuite) TestLoadMorpheRegistry_Failure_InvalidPaths() {
+func (suite *LoadMorpheRegistryTestSuite) TestLoadMorpheRegistry_InvalidPaths() {
 	loadHooks := registry.LoadMorpheRegistryHooks{}
 	config := cfg.MorpheLoadRegistryConfig{
 		RegistryEnumsDirPath:      "invalid path",
@@ -223,8 +223,12 @@ func (suite *LoadMorpheRegistryTestSuite) TestLoadMorpheRegistry_Failure_Invalid
 
 	r, registryErr := registry.LoadMorpheRegistry(loadHooks, config)
 
-	suite.ErrorContains(registryErr, "error reading directory 'invalid path")
-	suite.Nil(r)
+	suite.Nil(registryErr)
+	suite.NotNil(r)
+	suite.False(r.HasEnums())
+	suite.False(r.HasModels())
+	suite.False(r.HasStructures())
+	suite.False(r.HasEntities())
 }
 
 func (suite *LoadMorpheRegistryTestSuite) TestLoadMorpheRegistry_StartHook_Successful() {
