@@ -55,3 +55,11 @@ func ErrNoMorpheEntityIdentifierFields(entityName string, identifierName string)
 func ErrUnknownMorpheEntityIdentifierField(entityName string, identifierName string, fieldName string) error {
 	return fmt.Errorf("entity '%s' identifier '%s' references unknown field '%s'", entityName, identifierName, fieldName)
 }
+
+func ErrMorpheEntityPolyRelationMissingFor(entityName string, relatedName string, relationType string) error {
+	return fmt.Errorf("morphe entity %s polymorphic relation %s of type %s is missing required 'for' property", entityName, relatedName, relationType)
+}
+
+func ErrMorpheEntityPolyRelationMissingThrough(entityName string, relatedName string, relationType string) error {
+	return fmt.Errorf("morphe entity %s polymorphic relation %s of type %s is missing required 'through' property", entityName, relatedName, relationType)
+}

@@ -185,14 +185,36 @@ func (e Entity) validateRelation(relatedName string, relation EntityRelation) er
 	}
 
 	validTypes := map[string]bool{
-		"ForOne":  true,
-		"ForMany": true,
-		"HasOne":  true,
-		"HasMany": true,
+		"ForOne":      true,
+		"ForMany":     true,
+		"HasOne":      true,
+		"HasMany":     true,
+		"ForOnePoly":  true,
+		"ForManyPoly": true,
+		"HasOnePoly":  true,
+		"HasManyPoly": true,
 	}
 
 	if !validTypes[relation.Type] {
 		return ErrInvalidMorpheEntityRelationType(e.Name, relatedName, relation.Type)
+	}
+
+	// Validate polymorphic relationships
+	lowerType := strings.ToLower(relation.Type)
+	isPoly := strings.HasSuffix(lowerType, "poly")
+
+	if !isPoly {
+		return nil
+	}
+
+	isFor := strings.HasPrefix(lowerType, "for")
+	if isFor && len(relation.For) == 0 {
+		return ErrMorpheEntityPolyRelationMissingFor(e.Name, relatedName, relation.Type)
+	}
+
+	isHas := strings.HasPrefix(lowerType, "has")
+	if isHas && relation.Through == "" {
+		return ErrMorpheEntityPolyRelationMissingThrough(e.Name, relatedName, relation.Type)
 	}
 
 	return nil
