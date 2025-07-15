@@ -56,7 +56,10 @@ func TestEntityValidate_AliasedRelation_Success(t *testing.T) {
 	allEnums := map[string]Enum{}
 
 	// Test successful validation with aliased relationships
-	err := personEntity.Validate(allModels, allEnums)
+	allEntities := map[string]Entity{
+		"ContactInfo": {Name: "ContactInfo"},
+	}
+	err := personEntity.Validate(allEntities, allModels, allEnums)
 	assert.NoError(t, err)
 }
 
@@ -91,10 +94,13 @@ func TestEntityValidate_AliasedRelation_UnknownTarget(t *testing.T) {
 	allModels := map[string]Model{
 		"Person": personModel,
 	}
+	allEntities := map[string]Entity{
+		// No UnknownTarget entity - should cause validation error
+	}
 	allEnums := map[string]Enum{}
 
 	// Test validation failure with unknown aliased target
-	err := personEntity.Validate(allModels, allEnums)
+	err := personEntity.Validate(allEntities, allModels, allEnums)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "unknown aliased target: UnknownTarget")
 }
@@ -165,10 +171,14 @@ func TestEntityValidate_MultipleAliasedRelations_Success(t *testing.T) {
 		"Project":     projectModel,
 		"Person":      personModel,
 	}
+	allEntities := map[string]Entity{
+		"ContactInfo": {Name: "ContactInfo"},
+		"Project":     {Name: "Project"},
+	}
 	allEnums := map[string]Enum{}
 
 	// Test successful validation with multiple aliased relationships
-	err := personEntity.Validate(allModels, allEnums)
+	err := personEntity.Validate(allEntities, allModels, allEnums)
 	assert.NoError(t, err)
 }
 
@@ -238,10 +248,13 @@ func TestEntityValidate_PolymorphicAliasedRelation_Success(t *testing.T) {
 		"Comment":     commentModel,
 		"Commentable": commentableModel,
 	}
+	allEntities := map[string]Entity{
+		"Commentable": {Name: "Commentable"},
+	}
 	allEnums := map[string]Enum{}
 
 	// Test successful validation with polymorphic aliased relationship
-	err := commentEntity.Validate(allModels, allEnums)
+	err := commentEntity.Validate(allEntities, allModels, allEnums)
 	assert.NoError(t, err)
 }
 
@@ -302,9 +315,84 @@ func TestEntityValidate_MixedAliasedAndNonAliased_Success(t *testing.T) {
 		"Person":      personModel,
 		"Company":     companyModel,
 	}
+	allEntities := map[string]Entity{
+		"ContactInfo": {Name: "ContactInfo"},
+		"Company":     {Name: "Company"},
+	}
 	allEnums := map[string]Enum{}
 
 	// Test successful validation with mixed aliased and non-aliased relationships
-	err := personEntity.Validate(allModels, allEnums)
+	err := personEntity.Validate(allEntities, allModels, allEnums)
 	assert.NoError(t, err)
+}
+
+func TestEntityValidate_PolymorphicAliasedRelation_EntityNotInForList(t *testing.T) {
+	// Setup test entities for polymorphic relationship
+	commentEntity := Entity{
+		Name: "Comment",
+		Fields: map[string]EntityField{
+			"comment_id": {Type: "Comment.id"},
+		},
+		Identifiers: map[string]EntityIdentifier{
+			"primary": {Fields: []string{"comment_id"}},
+		},
+		Related: map[string]EntityRelation{
+			"commentable": {
+				Type: "ForOnePoly",
+				For:  []string{"Person", "Article"}, // Entity names in 'for' list
+			},
+		},
+	}
+
+	// Entity with polymorphic inverse relationship
+	postEntity := Entity{
+		Name: "Post",
+		Fields: map[string]EntityField{
+			"post_id": {Type: "Post.id"},
+		},
+		Identifiers: map[string]EntityIdentifier{
+			"primary": {Fields: []string{"post_id"}},
+		},
+		Related: map[string]EntityRelation{
+			"comments": {
+				Type:    "HasOnePoly",
+				Through: "commentable",
+				Aliased: "Comment",
+			},
+		},
+	}
+
+	allModels := map[string]Model{
+		"Comment": {
+			Name: "Comment",
+			Fields: map[string]ModelField{
+				"id": {Type: "String"},
+			},
+			Identifiers: map[string]ModelIdentifier{
+				"primary": {Fields: []string{"id"}},
+			},
+		},
+		"Post": {
+			Name: "Post",
+			Fields: map[string]ModelField{
+				"id": {Type: "String"},
+			},
+			Identifiers: map[string]ModelIdentifier{
+				"primary": {Fields: []string{"id"}},
+			},
+		},
+	}
+	allEntities := map[string]Entity{
+		"Comment": commentEntity,
+		"Post":    postEntity,
+		"Person":  {Name: "Person"},
+		"Article": {Name: "Article"},
+	}
+	allEnums := map[string]Enum{}
+
+	// This should fail because "Post" is not in the 'for' list ["Person", "Article"]
+	err := postEntity.Validate(allEntities, allModels, allEnums)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "entity 'Post' is not in the 'for' list")
+	assert.Contains(t, err.Error(), "polymorphic relationship 'commentable' in entity 'Comment'")
 }
