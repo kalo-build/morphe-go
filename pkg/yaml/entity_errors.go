@@ -63,3 +63,11 @@ func ErrMorpheEntityPolyRelationMissingFor(entityName string, relatedName string
 func ErrMorpheEntityPolyRelationMissingThrough(entityName string, relatedName string, relationType string) error {
 	return fmt.Errorf("morphe entity %s polymorphic relation %s of type %s is missing required 'through' property", entityName, relatedName, relationType)
 }
+
+func ErrMorpheEntityUnknownAliasedTarget(entityName string, relationName string, aliasedTarget string) error {
+	return fmt.Errorf("morphe entity '%s' relation '%s' has unknown aliased target: %s", entityName, relationName, aliasedTarget)
+}
+
+func ErrMorpheEntityPolymorphicInverseValidation(entityName string, relationName string, aliasedTarget string, through string, reason string) error {
+	return fmt.Errorf("morphe entity '%s' polymorphic inverse relation '%s' (aliased: %s, through: %s): %s", entityName, relationName, aliasedTarget, through, reason)
+}

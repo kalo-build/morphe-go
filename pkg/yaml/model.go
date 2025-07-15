@@ -1,7 +1,9 @@
 package yaml
 
 import (
+	"fmt"
 	"log"
+	"strings"
 
 	"github.com/kalo-build/clone"
 )
@@ -33,6 +35,96 @@ func (m Model) Validate(allEnums map[string]Enum) error {
 	}
 
 	return nil
+}
+
+// ValidateWithModels validates a model with access to all models for aliasing validation
+func (m Model) ValidateWithModels(allModels map[string]Model, allEnums map[string]Enum) error {
+	// First run the basic validation
+	if err := m.Validate(allEnums); err != nil {
+		return err
+	}
+
+	// Validate aliased relationships
+	if err := m.validateAliasedRelations(allModels); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m Model) validateAliasedRelations(allModels map[string]Model) error {
+	for relationName, relation := range m.Related {
+		if relation.Aliased != "" {
+			// Check if the aliased target exists in the registry
+			if _, exists := allModels[relation.Aliased]; !exists {
+				return ErrMorpheModelUnknownAliasedTarget(m.Name, relationName, relation.Aliased)
+			}
+
+			// Enhanced validation for polymorphic inverse relationships
+			if m.isRelationPolyHas(relation.Type) && relation.Through != "" {
+				// This is a HasOnePoly/HasManyPoly with through + aliased pattern
+				if err := m.validatePolymorphicInverseAliasing(relationName, relation, allModels); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (m Model) validatePolymorphicInverseAliasing(relationName string, relation ModelRelation, allModels map[string]Model) error {
+	aliasedModel := allModels[relation.Aliased]
+
+	// Check if aliased model has the 'through' relationship
+	throughRelation, exists := aliasedModel.Related[relation.Through]
+	if !exists {
+		return ErrMorpheModelPolymorphicInverseValidation(m.Name, relationName, relation.Aliased, relation.Through,
+			fmt.Sprintf("aliased model '%s' does not have relationship '%s'", relation.Aliased, relation.Through))
+	}
+
+	// Check if the 'through' relationship is polymorphic ForOnePoly/ForManyPoly
+	if !m.isRelationPolyFor(throughRelation.Type) {
+		return ErrMorpheModelPolymorphicInverseValidation(m.Name, relationName, relation.Aliased, relation.Through,
+			fmt.Sprintf("relationship '%s' in model '%s' is not a polymorphic 'For' relationship (type: %s)", relation.Through, relation.Aliased, throughRelation.Type))
+	}
+
+	// Check if current model is in the 'for' list of the polymorphic relationship
+	found := false
+	for _, forModel := range throughRelation.For {
+		if forModel == m.Name {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return ErrMorpheModelPolymorphicInverseValidation(m.Name, relationName, relation.Aliased, relation.Through,
+			fmt.Sprintf("current model '%s' is not in the 'for' list of polymorphic relationship '%s' in model '%s'", m.Name, relation.Through, relation.Aliased))
+	}
+
+	return nil
+}
+
+// Helper functions copied from yamlops to avoid import cycle
+func (m Model) isRelationFor(relationType string) bool {
+	return strings.HasPrefix(strings.ToLower(relationType), "for")
+}
+
+func (m Model) isRelationHas(relationType string) bool {
+	return strings.HasPrefix(strings.ToLower(relationType), "has")
+}
+
+func (m Model) isRelationPoly(relationType string) bool {
+	lowerType := strings.ToLower(relationType)
+	return (m.isRelationFor(relationType) || m.isRelationHas(relationType)) &&
+		strings.HasSuffix(lowerType, "poly")
+}
+
+func (m Model) isRelationPolyFor(relationType string) bool {
+	return m.isRelationPoly(relationType) && m.isRelationFor(relationType)
+}
+
+func (m Model) isRelationPolyHas(relationType string) bool {
+	return m.isRelationPoly(relationType) && m.isRelationHas(relationType)
 }
 
 func (m Model) DeepClone() Model {

@@ -108,3 +108,34 @@ func TestIsRelationPolyMany(t *testing.T) {
 	assert.False(t, IsRelationPolyMany("Invalid"))
 	assert.False(t, IsRelationPolyMany(""))
 }
+
+func TestIsRelationAliased(t *testing.T) {
+	assert.True(t, IsRelationAliased("ContactInfo"))
+	assert.True(t, IsRelationAliased("Project"))
+	assert.True(t, IsRelationAliased("User"))
+	assert.False(t, IsRelationAliased(""))
+	assert.False(t, IsRelationAliased("   "))
+	assert.False(t, IsRelationAliased("\t"))
+	assert.False(t, IsRelationAliased("\n"))
+	assert.True(t, IsRelationAliased(" ContactInfo ")) // Should trim whitespace
+}
+
+func TestGetRelationTargetName(t *testing.T) {
+	// When aliased is provided, should return aliased target
+	assert.Equal(t, "ContactInfo", GetRelationTargetName("WorkContact", "ContactInfo"))
+	assert.Equal(t, "Project", GetRelationTargetName("WorkProjects", "Project"))
+	assert.Equal(t, "User", GetRelationTargetName("Author", "User"))
+
+	// When aliased is empty, should return relationship name
+	assert.Equal(t, "WorkContact", GetRelationTargetName("WorkContact", ""))
+	assert.Equal(t, "Projects", GetRelationTargetName("Projects", ""))
+	assert.Equal(t, "Author", GetRelationTargetName("Author", ""))
+
+	// When aliased is whitespace, should return relationship name
+	assert.Equal(t, "WorkContact", GetRelationTargetName("WorkContact", "   "))
+	assert.Equal(t, "Projects", GetRelationTargetName("Projects", "\t"))
+	assert.Equal(t, "Author", GetRelationTargetName("Author", "\n"))
+
+	// When aliased has whitespace, should trim and use aliased
+	assert.Equal(t, "ContactInfo", GetRelationTargetName("WorkContact", " ContactInfo "))
+}
