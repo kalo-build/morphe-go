@@ -39,3 +39,17 @@ func IsRelationPolyOne(relationType string) bool {
 func IsRelationPolyMany(relationType string) bool {
 	return IsRelationPoly(relationType) && IsRelationMany(relationType)
 }
+
+// IsRelationAliased checks if a relationship has an alias defined
+func IsRelationAliased(aliasedField string) bool {
+	return strings.TrimSpace(aliasedField) != ""
+}
+
+// GetRelationTargetName returns the actual target name for a relationship
+// If aliased is provided, returns the aliased target; otherwise returns the relationship name
+func GetRelationTargetName(relationshipName, aliasedField string) string {
+	if IsRelationAliased(aliasedField) {
+		return strings.TrimSpace(aliasedField)
+	}
+	return relationshipName
+}

@@ -6,6 +6,7 @@ type ModelRelation struct {
 	Type    string   `yaml:"type"`
 	For     []string `yaml:"for,omitempty"`
 	Through string   `yaml:"through,omitempty"`
+	Aliased string   `yaml:"aliased,omitempty"`
 }
 
 func (r ModelRelation) DeepClone() ModelRelation {
@@ -13,5 +14,6 @@ func (r ModelRelation) DeepClone() ModelRelation {
 		Type:    r.Type,
 		For:     clone.Slice(r.For),
 		Through: r.Through,
+		Aliased: r.Aliased,
 	}
 }

@@ -1,6 +1,7 @@
 package yaml
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/kalo-build/clone"
@@ -24,7 +25,7 @@ func (e Entity) DeepClone() Entity {
 	return entityCopy
 }
 
-func (e Entity) Validate(allModels map[string]Model, allEnums map[string]Enum) error {
+func (e Entity) Validate(allEntities map[string]Entity, allModels map[string]Model, allEnums map[string]Enum) error {
 	if e.Name == "" {
 		return ErrNoMorpheEntityName
 	}
@@ -45,7 +46,7 @@ func (e Entity) Validate(allModels map[string]Model, allEnums map[string]Enum) e
 		return err
 	}
 
-	if err := e.validateAllRelations(); err != nil {
+	if err := e.validateAllRelations(allEntities); err != nil {
 		return err
 	}
 
@@ -75,9 +76,9 @@ func (e Entity) validateAllFieldTypes(allModels map[string]Model, allEnums map[s
 	return nil
 }
 
-func (e Entity) validateAllRelations() error {
+func (e Entity) validateAllRelations(allEntities map[string]Entity) error {
 	for relatedName, relation := range e.Related {
-		if err := e.validateRelation(relatedName, relation); err != nil {
+		if err := e.validateRelation(relatedName, relation, allEntities); err != nil {
 			return err
 		}
 	}
@@ -179,7 +180,7 @@ func (e Entity) validateTerminalField(model Model, fieldName string, originalFie
 	return nil
 }
 
-func (e Entity) validateRelation(relatedName string, relation EntityRelation) error {
+func (e Entity) validateRelation(relatedName string, relation EntityRelation, allEntities map[string]Entity) error {
 	if relation.Type == "" {
 		return ErrNoMorpheEntityRelationType(e.Name, relatedName)
 	}
@@ -197,6 +198,32 @@ func (e Entity) validateRelation(relatedName string, relation EntityRelation) er
 
 	if !validTypes[relation.Type] {
 		return ErrInvalidMorpheEntityRelationType(e.Name, relatedName, relation.Type)
+	}
+
+	// Validate aliased relationships
+	if relation.Aliased != "" {
+		// Get the aliased target name
+		aliasedTarget := relation.Aliased
+
+		// Check if the aliased target exists in the entity registry
+		if _, entityExists := allEntities[aliasedTarget]; !entityExists {
+			return ErrMorpheEntityUnknownAliasedTarget(e.Name, relatedName, aliasedTarget)
+		}
+
+		// Enhanced validation for polymorphic inverse relationships
+		if e.isRelationPolyHas(relation.Type) && relation.Through != "" {
+			// This is a HasOnePoly/HasManyPoly with through + aliased pattern
+			// Create a modified relation with trimmed aliased target for validation
+			trimmedRelation := EntityRelation{
+				Type:    relation.Type,
+				For:     relation.For,
+				Through: relation.Through,
+				Aliased: aliasedTarget,
+			}
+			if err := e.validatePolymorphicInverseAliasing(relatedName, trimmedRelation, allEntities); err != nil {
+				return err
+			}
+		}
 	}
 
 	// Validate polymorphic relationships
@@ -218,4 +245,59 @@ func (e Entity) validateRelation(relatedName string, relation EntityRelation) er
 	}
 
 	return nil
+}
+
+func (e Entity) validatePolymorphicInverseAliasing(relationName string, relation EntityRelation, allEntities map[string]Entity) error {
+	aliasedEntity := allEntities[relation.Aliased]
+
+	// Check if aliased entity has the 'through' relationship
+	throughRelation, exists := aliasedEntity.Related[relation.Through]
+	if !exists {
+		return ErrMorpheEntityPolymorphicInverseValidation(e.Name, relationName, relation.Aliased, relation.Through,
+			fmt.Sprintf("aliased entity '%s' does not have relationship '%s'", relation.Aliased, relation.Through))
+	}
+
+	// Check if the 'through' relationship is polymorphic ForOnePoly/ForManyPoly
+	if !e.isRelationPolyFor(throughRelation.Type) {
+		return ErrMorpheEntityPolymorphicInverseValidation(e.Name, relationName, relation.Aliased, relation.Through,
+			fmt.Sprintf("relationship '%s' in entity '%s' is not a polymorphic 'For' relationship (type: %s)", relation.Through, relation.Aliased, throughRelation.Type))
+	}
+
+	// Check if the current entity is in the 'for' list of the polymorphic relationship
+	found := false
+	for _, forEntity := range throughRelation.For {
+		if forEntity == e.Name {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return ErrMorpheEntityPolymorphicInverseValidation(e.Name, relationName, relation.Aliased, relation.Through,
+			fmt.Sprintf("entity '%s' is not in the 'for' list of polymorphic relationship '%s' in entity '%s'", e.Name, relation.Through, relation.Aliased))
+	}
+
+	return nil
+}
+
+// Helper functions for entity relation validation
+func (e Entity) isRelationFor(relationType string) bool {
+	return strings.HasPrefix(strings.ToLower(relationType), "for")
+}
+
+func (e Entity) isRelationHas(relationType string) bool {
+	return strings.HasPrefix(strings.ToLower(relationType), "has")
+}
+
+func (e Entity) isRelationPoly(relationType string) bool {
+	lowerType := strings.ToLower(relationType)
+	return (e.isRelationFor(relationType) || e.isRelationHas(relationType)) &&
+		strings.HasSuffix(lowerType, "poly")
+}
+
+func (e Entity) isRelationPolyFor(relationType string) bool {
+	return e.isRelationPoly(relationType) && e.isRelationFor(relationType)
+}
+
+func (e Entity) isRelationPolyHas(relationType string) bool {
+	return e.isRelationPoly(relationType) && e.isRelationHas(relationType)
 }

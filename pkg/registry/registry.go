@@ -278,6 +278,9 @@ func (r *Registry) LoadEnumsFromDirectory(dirPath string) error {
 		return unmarshalErr
 	}
 
+	// Normalize whitespace in string fields
+	yaml.NormalizeAllEnums(allEnums)
+
 	if len(allEnums) == 0 {
 		log.Printf("Warning: No enum files found in directory: %s. Skipping enum loading.", dirPath)
 		return nil
@@ -301,6 +304,9 @@ func (r *Registry) LoadModelsFromDirectory(dirPath string) error {
 		return unmarshalErr
 	}
 
+	// Normalize whitespace in string fields
+	yaml.NormalizeAllModels(allModels)
+
 	if len(allModels) == 0 {
 		log.Printf("Warning: No model files found in directory: %s. Skipping model loading.", dirPath)
 		return nil
@@ -323,6 +329,9 @@ func (r *Registry) LoadEntitiesFromDirectory(dirPath string) error {
 	if unmarshalErr != nil {
 		return unmarshalErr
 	}
+
+	// Normalize whitespace in string fields
+	yaml.NormalizeAllEntities(allEntities)
 
 	if len(allEntities) == 0 {
 		log.Printf("Warning: No entity files found in directory: %s. Skipping entity loading.", dirPath)
@@ -351,6 +360,9 @@ func (r *Registry) LoadStructuresFromDirectory(dirPath string) error {
 	if unmarshalErr != nil {
 		return unmarshalErr
 	}
+
+	// Normalize whitespace in string fields
+	yaml.NormalizeAllStructures(allStructures)
 
 	if len(allStructures) == 0 {
 		log.Printf("Warning: No structure files found in directory: %s. Skipping structure loading.", dirPath)

@@ -25,6 +25,23 @@ func TestEntityRelationDeepClone(t *testing.T) {
 	assert.Equal(t, "Modified", cloned.For[0])
 }
 
+func TestEntityRelationDeepCloneWithAliased(t *testing.T) {
+	original := EntityRelation{
+		Type:    "ForOne",
+		Aliased: "ContactInfo",
+	}
+
+	cloned := original.DeepClone()
+
+	assert.Equal(t, original.Type, cloned.Type)
+	assert.Equal(t, original.Aliased, cloned.Aliased)
+
+	cloned.Aliased = "Modified"
+	assert.NotEqual(t, original.Aliased, cloned.Aliased)
+	assert.Equal(t, "ContactInfo", original.Aliased)
+	assert.Equal(t, "Modified", cloned.Aliased)
+}
+
 func TestEntityRelationPolymorphicFields_ForOnePoly(t *testing.T) {
 	forOnePolyRelation := EntityRelation{
 		Type: "ForOnePoly",
@@ -33,6 +50,7 @@ func TestEntityRelationPolymorphicFields_ForOnePoly(t *testing.T) {
 	assert.Equal(t, "ForOnePoly", forOnePolyRelation.Type)
 	assert.Equal(t, []string{"Post", "Article"}, forOnePolyRelation.For)
 	assert.Empty(t, forOnePolyRelation.Through)
+	assert.Empty(t, forOnePolyRelation.Aliased)
 }
 
 func TestEntityRelationPolymorphicFields_HasOnePoly(t *testing.T) {
@@ -43,4 +61,39 @@ func TestEntityRelationPolymorphicFields_HasOnePoly(t *testing.T) {
 	assert.Equal(t, "HasOnePoly", hasOnePolyRelation.Type)
 	assert.Empty(t, hasOnePolyRelation.For)
 	assert.Equal(t, "Commentable", hasOnePolyRelation.Through)
+	assert.Empty(t, hasOnePolyRelation.Aliased)
+}
+
+func TestEntityRelationAliased_ForOne(t *testing.T) {
+	aliasedRelation := EntityRelation{
+		Type:    "ForOne",
+		Aliased: "ContactInfo",
+	}
+	assert.Equal(t, "ForOne", aliasedRelation.Type)
+	assert.Equal(t, "ContactInfo", aliasedRelation.Aliased)
+	assert.Empty(t, aliasedRelation.For)
+	assert.Empty(t, aliasedRelation.Through)
+}
+
+func TestEntityRelationAliased_ForMany(t *testing.T) {
+	aliasedRelation := EntityRelation{
+		Type:    "ForMany",
+		Aliased: "Project",
+	}
+	assert.Equal(t, "ForMany", aliasedRelation.Type)
+	assert.Equal(t, "Project", aliasedRelation.Aliased)
+	assert.Empty(t, aliasedRelation.For)
+	assert.Empty(t, aliasedRelation.Through)
+}
+
+func TestEntityRelationAliased_PolymorphicWithAlias(t *testing.T) {
+	aliasedPolyRelation := EntityRelation{
+		Type:    "ForManyPoly",
+		For:     []string{"Task", "Document"},
+		Aliased: "Commentable",
+	}
+	assert.Equal(t, "ForManyPoly", aliasedPolyRelation.Type)
+	assert.Equal(t, []string{"Task", "Document"}, aliasedPolyRelation.For)
+	assert.Equal(t, "Commentable", aliasedPolyRelation.Aliased)
+	assert.Empty(t, aliasedPolyRelation.Through)
 }
