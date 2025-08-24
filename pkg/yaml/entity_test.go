@@ -396,3 +396,108 @@ func TestEntityValidate_PolymorphicAliasedRelation_EntityNotInForList(t *testing
 	assert.Contains(t, err.Error(), "entity 'Post' is not in the 'for' list")
 	assert.Contains(t, err.Error(), "polymorphic relationship 'commentable' in entity 'Comment'")
 }
+
+func TestEntityValidate_AliasedRelation_WhitespaceHandling(t *testing.T) {
+	// Setup test models
+	contactModel := Model{
+		Name: "ContactInfo",
+		Fields: map[string]ModelField{
+			"email": {Type: "String"},
+		},
+		Identifiers: map[string]ModelIdentifier{
+			"primary": {Fields: []string{"email"}},
+		},
+	}
+
+	personModel := Model{
+		Name: "Person",
+		Fields: map[string]ModelField{
+			"name": {Type: "String"},
+		},
+		Identifiers: map[string]ModelIdentifier{
+			"primary": {Fields: []string{"name"}},
+		},
+	}
+
+	// Entity with aliased relationships containing whitespace
+	personEntity := Entity{
+		Name: "PersonEntity",
+		Fields: map[string]EntityField{
+			"full_name": {Type: "Person.name"},
+		},
+		Identifiers: map[string]EntityIdentifier{
+			"primary": {Fields: []string{"full_name"}},
+		},
+		Related: map[string]EntityRelation{
+			"WorkContact": {
+				Type:    "ForOne",
+				Aliased: "  ContactInfo  ", // Leading and trailing whitespace
+			},
+			"HomeContact": {
+				Type:    "ForOne",
+				Aliased: "\tContactInfo\n", // Tab and newline whitespace
+			},
+		},
+	}
+
+	allModels := map[string]Model{
+		"ContactInfo": contactModel,
+		"Person":      personModel,
+	}
+	allEntities := map[string]Entity{
+		"ContactInfo": {Name: "ContactInfo"},
+	}
+	allEnums := map[string]Enum{}
+
+	// Apply normalization before validation (simulating registry loading behavior)
+	NormalizeEntity(&personEntity)
+
+	// Test successful validation with whitespace in aliased relationships
+	err := personEntity.Validate(allEntities, allModels, allEnums)
+	assert.NoError(t, err)
+}
+
+func TestEntityValidate_AliasedRelation_WhitespaceOnlyTreatedAsEmpty(t *testing.T) {
+	// Setup test models
+	personModel := Model{
+		Name: "Person",
+		Fields: map[string]ModelField{
+			"name": {Type: "String"},
+		},
+		Identifiers: map[string]ModelIdentifier{
+			"primary": {Fields: []string{"name"}},
+		},
+	}
+
+	// Entity with relationship having whitespace-only aliased value
+	personEntity := Entity{
+		Name: "PersonEntity",
+		Fields: map[string]EntityField{
+			"full_name": {Type: "Person.name"},
+		},
+		Identifiers: map[string]EntityIdentifier{
+			"primary": {Fields: []string{"full_name"}},
+		},
+		Related: map[string]EntityRelation{
+			"WorkContact": {
+				Type:    "ForOne",
+				Aliased: "   \t\n   ", // Only whitespace - should be treated as non-aliased
+			},
+		},
+	}
+
+	allModels := map[string]Model{
+		"Person": personModel,
+	}
+	allEntities := map[string]Entity{
+		"WorkContact": {Name: "WorkContact"}, // Non-aliased relationships reference by name
+	}
+	allEnums := map[string]Enum{}
+
+	// Apply normalization before validation (simulating registry loading behavior)
+	NormalizeEntity(&personEntity)
+
+	// Test successful validation where whitespace-only aliased is treated as non-aliased
+	err := personEntity.Validate(allEntities, allModels, allEnums)
+	assert.NoError(t, err)
+}

@@ -398,3 +398,50 @@ func TestModelValidateWithModels_PolymorphicInverseAliasing_ModelNotInForList(t 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "current model 'Post' is not in the 'for' list")
 }
+
+func TestModelValidateWithModels_AliasedRelation_WhitespaceHandling(t *testing.T) {
+	// Setup test models
+	contactModel := Model{
+		Name: "ContactInfo",
+		Fields: map[string]ModelField{
+			"email": {Type: "String"},
+		},
+		Identifiers: map[string]ModelIdentifier{
+			"primary": {Fields: []string{"email"}},
+		},
+	}
+
+	// Model with aliased relationships containing whitespace
+	personModel := Model{
+		Name: "Person",
+		Fields: map[string]ModelField{
+			"name": {Type: "String"},
+		},
+		Identifiers: map[string]ModelIdentifier{
+			"primary": {Fields: []string{"name"}},
+		},
+		Related: map[string]ModelRelation{
+			"WorkContact": {
+				Type:    "ForOne",
+				Aliased: "  ContactInfo  ", // Leading and trailing whitespace
+			},
+			"HomeContact": {
+				Type:    "ForOne",
+				Aliased: "\tContactInfo\n", // Tab and newline whitespace
+			},
+		},
+	}
+
+	allModels := map[string]Model{
+		"ContactInfo": contactModel,
+		"Person":      personModel,
+	}
+	allEnums := map[string]Enum{}
+
+	// Apply normalization before validation (simulating registry loading behavior)
+	NormalizeModel(&personModel)
+
+	// Test successful validation with whitespace in aliased relationships
+	err := personModel.ValidateWithModels(allModels, allEnums)
+	assert.NoError(t, err)
+}

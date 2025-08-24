@@ -55,9 +55,12 @@ func (m Model) ValidateWithModels(allModels map[string]Model, allEnums map[strin
 func (m Model) validateAliasedRelations(allModels map[string]Model) error {
 	for relationName, relation := range m.Related {
 		if relation.Aliased != "" {
+			// Get the aliased target name
+			aliasedTarget := relation.Aliased
+
 			// Check if the aliased target exists in the registry
-			if _, exists := allModels[relation.Aliased]; !exists {
-				return ErrMorpheModelUnknownAliasedTarget(m.Name, relationName, relation.Aliased)
+			if _, exists := allModels[aliasedTarget]; !exists {
+				return ErrMorpheModelUnknownAliasedTarget(m.Name, relationName, aliasedTarget)
 			}
 
 			// Enhanced validation for polymorphic inverse relationships
@@ -73,19 +76,21 @@ func (m Model) validateAliasedRelations(allModels map[string]Model) error {
 }
 
 func (m Model) validatePolymorphicInverseAliasing(relationName string, relation ModelRelation, allModels map[string]Model) error {
-	aliasedModel := allModels[relation.Aliased]
+	// Get the aliased target name
+	aliasedTarget := relation.Aliased
+	aliasedModel := allModels[aliasedTarget]
 
 	// Check if aliased model has the 'through' relationship
 	throughRelation, exists := aliasedModel.Related[relation.Through]
 	if !exists {
-		return ErrMorpheModelPolymorphicInverseValidation(m.Name, relationName, relation.Aliased, relation.Through,
-			fmt.Sprintf("aliased model '%s' does not have relationship '%s'", relation.Aliased, relation.Through))
+		return ErrMorpheModelPolymorphicInverseValidation(m.Name, relationName, aliasedTarget, relation.Through,
+			fmt.Sprintf("aliased model '%s' does not have relationship '%s'", aliasedTarget, relation.Through))
 	}
 
 	// Check if the 'through' relationship is polymorphic ForOnePoly/ForManyPoly
 	if !m.isRelationPolyFor(throughRelation.Type) {
-		return ErrMorpheModelPolymorphicInverseValidation(m.Name, relationName, relation.Aliased, relation.Through,
-			fmt.Sprintf("relationship '%s' in model '%s' is not a polymorphic 'For' relationship (type: %s)", relation.Through, relation.Aliased, throughRelation.Type))
+		return ErrMorpheModelPolymorphicInverseValidation(m.Name, relationName, aliasedTarget, relation.Through,
+			fmt.Sprintf("relationship '%s' in model '%s' is not a polymorphic 'For' relationship (type: %s)", relation.Through, aliasedTarget, throughRelation.Type))
 	}
 
 	// Check if current model is in the 'for' list of the polymorphic relationship
@@ -97,8 +102,8 @@ func (m Model) validatePolymorphicInverseAliasing(relationName string, relation 
 		}
 	}
 	if !found {
-		return ErrMorpheModelPolymorphicInverseValidation(m.Name, relationName, relation.Aliased, relation.Through,
-			fmt.Sprintf("current model '%s' is not in the 'for' list of polymorphic relationship '%s' in model '%s'", m.Name, relation.Through, relation.Aliased))
+		return ErrMorpheModelPolymorphicInverseValidation(m.Name, relationName, aliasedTarget, relation.Through,
+			fmt.Sprintf("current model '%s' is not in the 'for' list of polymorphic relationship '%s' in model '%s'", m.Name, relation.Through, aliasedTarget))
 	}
 
 	return nil

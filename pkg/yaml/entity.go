@@ -46,7 +46,7 @@ func (e Entity) Validate(allEntities map[string]Entity, allModels map[string]Mod
 		return err
 	}
 
-	if err := e.validateAllRelations(allEntities, allModels); err != nil {
+	if err := e.validateAllRelations(allEntities); err != nil {
 		return err
 	}
 
@@ -76,9 +76,9 @@ func (e Entity) validateAllFieldTypes(allModels map[string]Model, allEnums map[s
 	return nil
 }
 
-func (e Entity) validateAllRelations(allEntities map[string]Entity, allModels map[string]Model) error {
+func (e Entity) validateAllRelations(allEntities map[string]Entity) error {
 	for relatedName, relation := range e.Related {
-		if err := e.validateRelation(relatedName, relation, allEntities, allModels); err != nil {
+		if err := e.validateRelation(relatedName, relation, allEntities); err != nil {
 			return err
 		}
 	}
@@ -180,7 +180,7 @@ func (e Entity) validateTerminalField(model Model, fieldName string, originalFie
 	return nil
 }
 
-func (e Entity) validateRelation(relatedName string, relation EntityRelation, allEntities map[string]Entity, allModels map[string]Model) error {
+func (e Entity) validateRelation(relatedName string, relation EntityRelation, allEntities map[string]Entity) error {
 	if relation.Type == "" {
 		return ErrNoMorpheEntityRelationType(e.Name, relatedName)
 	}
@@ -202,15 +202,25 @@ func (e Entity) validateRelation(relatedName string, relation EntityRelation, al
 
 	// Validate aliased relationships
 	if relation.Aliased != "" {
+		// Get the aliased target name
+		aliasedTarget := relation.Aliased
+
 		// Check if the aliased target exists in the entity registry
-		if _, entityExists := allEntities[relation.Aliased]; !entityExists {
-			return ErrMorpheEntityUnknownAliasedTarget(e.Name, relatedName, relation.Aliased)
+		if _, entityExists := allEntities[aliasedTarget]; !entityExists {
+			return ErrMorpheEntityUnknownAliasedTarget(e.Name, relatedName, aliasedTarget)
 		}
 
 		// Enhanced validation for polymorphic inverse relationships
 		if e.isRelationPolyHas(relation.Type) && relation.Through != "" {
 			// This is a HasOnePoly/HasManyPoly with through + aliased pattern
-			if err := e.validatePolymorphicInverseAliasing(relatedName, relation, allModels, allEntities); err != nil {
+			// Create a modified relation with trimmed aliased target for validation
+			trimmedRelation := EntityRelation{
+				Type:    relation.Type,
+				For:     relation.For,
+				Through: relation.Through,
+				Aliased: aliasedTarget,
+			}
+			if err := e.validatePolymorphicInverseAliasing(relatedName, trimmedRelation, allEntities); err != nil {
 				return err
 			}
 		}
@@ -237,7 +247,7 @@ func (e Entity) validateRelation(relatedName string, relation EntityRelation, al
 	return nil
 }
 
-func (e Entity) validatePolymorphicInverseAliasing(relationName string, relation EntityRelation, allModels map[string]Model, allEntities map[string]Entity) error {
+func (e Entity) validatePolymorphicInverseAliasing(relationName string, relation EntityRelation, allEntities map[string]Entity) error {
 	aliasedEntity := allEntities[relation.Aliased]
 
 	// Check if aliased entity has the 'through' relationship
