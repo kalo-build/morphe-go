@@ -133,12 +133,23 @@ func (e Entity) resolveRootModel(rootModelName string, fieldName string, allMode
 
 func (e Entity) resolveModelFieldPath(startModel Model, pathSegments []string, fieldName string, fieldType ModelFieldPath, allModels map[string]Model) (Model, error) {
 	currentModel := startModel
-	for _, relatedName := range pathSegments {
+	for i, relatedName := range pathSegments {
 		if relationValidationErr := e.validateModelRelation(currentModel, relatedName, fieldName, fieldType); relationValidationErr != nil {
 			return Model{}, relationValidationErr
 		}
 
-		nextModel, relatedModelErr := e.resolveRelatedModel(relatedName, fieldName, fieldType, allModels)
+		// Get the relation to check for aliasing and polymorphism
+		relation := currentModel.Related[relatedName]
+
+		// Check if this is a polymorphic relationship - we cannot traverse through them
+		if e.isRelationPoly(relation.Type) {
+			// Build the path up to this point for a better error message
+			partialPath := strings.Join(append([]string{startModel.Name}, pathSegments[:i+1]...), ".")
+			return Model{}, fmt.Errorf("morphe entity %s field %s cannot traverse through polymorphic relationship %s in path %s",
+				e.Name, fieldName, relatedName, partialPath)
+		}
+
+		nextModel, relatedModelErr := e.resolveRelatedModel(relatedName, relation, fieldName, fieldType, allModels)
 		if relatedModelErr != nil {
 			return Model{}, relatedModelErr
 		}
@@ -154,9 +165,31 @@ func (e Entity) validateModelRelation(model Model, relatedName string, fieldName
 	return nil
 }
 
-func (e Entity) resolveRelatedModel(relatedName string, fieldName string, fieldType ModelFieldPath, allModels map[string]Model) (Model, error) {
-	relatedModel, exists := allModels[relatedName]
+func (e Entity) resolveRelatedModel(relatedName string, relation ModelRelation, fieldName string, fieldType ModelFieldPath, allModels map[string]Model) (Model, error) {
+	// Resolve the actual target model name - use aliased if provided, otherwise use relationship name
+	targetModelName := relatedName
+	isAliased := false
+	if strings.TrimSpace(relation.Aliased) != "" {
+		targetModelName = strings.TrimSpace(relation.Aliased)
+		isAliased = true
+
+		// For polymorphic relationships, check if the alias contains a dot
+		// Example: "Comment.Commentable" where Commentable is the inverse
+		if e.isRelationPoly(relation.Type) && strings.Contains(targetModelName, ".") {
+			// Extract just the model name part
+			parts := strings.Split(targetModelName, ".")
+			targetModelName = parts[0]
+			// Note: The inverse relationship validation happens separately in validateRelation
+		}
+	}
+
+	relatedModel, exists := allModels[targetModelName]
 	if !exists {
+		if isAliased {
+			// Provide more specific error for aliased targets
+			return Model{}, fmt.Errorf("morphe entity %s field %s references aliased target model %s (via relationship %s) that does not exist in path %s",
+				e.Name, fieldName, targetModelName, relatedName, fieldType)
+		}
 		return Model{}, ErrUnknownMorpheEntityFieldModel(e.Name, fieldName, relatedName, fieldType)
 	}
 	return relatedModel, nil
