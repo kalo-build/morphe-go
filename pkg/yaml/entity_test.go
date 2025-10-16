@@ -933,3 +933,62 @@ func TestEntityValidate_AliasedFieldPath_TraversalThroughForPoly(t *testing.T) {
 	assert.Contains(t, err.Error(), "cannot traverse through polymorphic relationship")
 	assert.Contains(t, err.Error(), "Commentable")
 }
+
+func TestEntityValidate_AliasedFieldPath_NonPolyMalformedAlias(t *testing.T) {
+	// Test malformed aliases in non-polymorphic relationships
+	contactModel := Model{
+		Name: "Contact",
+		Fields: map[string]ModelField{
+			"ID":    {Type: "AutoIncrement"},
+			"Email": {Type: "String"},
+		},
+		Identifiers: map[string]ModelIdentifier{
+			"primary": {Fields: []string{"ID"}},
+		},
+	}
+
+	personModel := Model{
+		Name: "Person",
+		Fields: map[string]ModelField{
+			"ID":   {Type: "AutoIncrement"},
+			"Name": {Type: "String"},
+		},
+		Identifiers: map[string]ModelIdentifier{
+			"primary": {Fields: []string{"ID"}},
+		},
+		Related: map[string]ModelRelation{
+			"WorkContact": {
+				Type:    "ForOne",
+				Aliased: ".Contact", // Invalid - starts with dot (non-polymorphic)
+			},
+		},
+	}
+
+	// Entity that tries to use the malformed alias
+	testEntity := Entity{
+		Name: "TestEntity",
+		Fields: map[string]EntityField{
+			"id":       {Type: "Person.ID"},
+			"badField": {Type: "Person.WorkContact.Email"}, // Should fail with clear error about invalid alias
+		},
+		Identifiers: map[string]EntityIdentifier{
+			"primary": {Fields: []string{"id"}},
+		},
+	}
+
+	allModels := map[string]Model{
+		"Contact": contactModel,
+		"Person":  personModel,
+	}
+	allEntities := map[string]Entity{
+		"TestEntity": testEntity,
+	}
+	allEnums := map[string]Enum{}
+
+	// Test that validation fails with clear error about invalid alias
+	err := testEntity.Validate(allEntities, allModels, allEnums)
+	require.Error(t, err)
+	// For non-polymorphic relationships, the dot is not special, so it just tries to find a model named ".Contact"
+	assert.Contains(t, err.Error(), "aliased target model .Contact")
+	assert.Contains(t, err.Error(), "does not exist")
+}

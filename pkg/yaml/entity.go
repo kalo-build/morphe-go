@@ -180,6 +180,12 @@ func (e Entity) resolveRelatedModel(relatedName string, relation ModelRelation, 
 			parts := strings.Split(targetModelName, ".")
 			targetModelName = parts[0]
 			// Note: The inverse relationship validation happens separately in validateRelation
+
+			// Validate that we have a non-empty model name after splitting
+			if targetModelName == "" {
+				return Model{}, fmt.Errorf("morphe entity %s field %s has invalid aliased target '%s' (via relationship %s) - model name cannot be empty",
+					e.Name, fieldName, relation.Aliased, relatedName)
+			}
 		}
 	}
 
