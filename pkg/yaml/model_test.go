@@ -399,6 +399,114 @@ func TestModelValidateWithModels_PolymorphicInverseAliasing_ModelNotInForList(t 
 	assert.Contains(t, err.Error(), "current model 'Post' is not in the 'for' list")
 }
 
+func TestModelValidate_IdentifierFieldExists(t *testing.T) {
+	model := Model{
+		Name: "Task",
+		Fields: map[string]ModelField{
+			"ID":    {Type: "UUID"},
+			"Title": {Type: "String"},
+		},
+		Identifiers: map[string]ModelIdentifier{
+			"primary": {Fields: []string{"ID"}},
+		},
+	}
+	err := model.Validate(map[string]Enum{})
+	assert.NoError(t, err)
+}
+
+func TestModelValidate_IdentifierFieldNotFound(t *testing.T) {
+	model := Model{
+		Name: "Task",
+		Fields: map[string]ModelField{
+			"ID": {Type: "UUID"},
+		},
+		Identifiers: map[string]ModelIdentifier{
+			"primary": {Fields: []string{"ID"}},
+			"name":    {Fields: []string{"MissingField"}},
+		},
+	}
+	err := model.Validate(map[string]Enum{})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "references unknown field 'MissingField'")
+}
+
+func TestModelValidate_IdentifierRelPrefixValid(t *testing.T) {
+	model := Model{
+		Name: "TaskTag",
+		Fields: map[string]ModelField{
+			"ID": {Type: "UUID"},
+		},
+		Identifiers: map[string]ModelIdentifier{
+			"primary": {Fields: []string{"ID"}},
+			"taskTag": {Fields: []string{"rel:Task", "rel:Tag"}},
+		},
+		Related: map[string]ModelRelation{
+			"Task": {Type: "ForOne"},
+			"Tag":  {Type: "ForOne"},
+		},
+	}
+	err := model.Validate(map[string]Enum{})
+	assert.NoError(t, err)
+}
+
+func TestModelValidate_IdentifierRelPrefixForOnePoly(t *testing.T) {
+	model := Model{
+		Name: "Reaction",
+		Fields: map[string]ModelField{
+			"ID":   {Type: "UUID"},
+			"Kind": {Type: "String"},
+		},
+		Identifiers: map[string]ModelIdentifier{
+			"primary":  {Fields: []string{"ID"}},
+			"reaction": {Fields: []string{"rel:Reactable", "Kind"}},
+		},
+		Related: map[string]ModelRelation{
+			"Reactable": {Type: "ForOnePoly", For: []string{"Post", "Comment"}},
+		},
+	}
+	err := model.Validate(map[string]Enum{})
+	assert.NoError(t, err)
+}
+
+func TestModelValidate_IdentifierRelPrefixRelationNotFound(t *testing.T) {
+	model := Model{
+		Name: "TaskTag",
+		Fields: map[string]ModelField{
+			"ID": {Type: "UUID"},
+		},
+		Identifiers: map[string]ModelIdentifier{
+			"primary": {Fields: []string{"ID"}},
+			"taskTag": {Fields: []string{"rel:Task", "rel:MissingRelation"}},
+		},
+		Related: map[string]ModelRelation{
+			"Task": {Type: "ForOne"},
+		},
+	}
+	err := model.Validate(map[string]Enum{})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "references unknown relation 'rel:MissingRelation'")
+}
+
+func TestModelValidate_IdentifierRelPrefixInvalidRelationType(t *testing.T) {
+	model := Model{
+		Name: "Task",
+		Fields: map[string]ModelField{
+			"ID": {Type: "UUID"},
+		},
+		Identifiers: map[string]ModelIdentifier{
+			"primary":  {Fields: []string{"ID"}},
+			"taskUser": {Fields: []string{"rel:User"}},
+		},
+		Related: map[string]ModelRelation{
+			"User": {Type: "HasMany"},
+		},
+	}
+	err := model.Validate(map[string]Enum{})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "unsupported type 'HasMany'")
+	assert.Contains(t, err.Error(), "only ForOne and ForOnePoly")
+}
+
 func TestModelValidateWithModels_AliasedRelation_WhitespaceHandling(t *testing.T) {
 	// Setup test models
 	contactModel := Model{

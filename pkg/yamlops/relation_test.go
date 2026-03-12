@@ -123,7 +123,7 @@ func TestIsRelationAliased(t *testing.T) {
 func TestGetRelationTargetName(t *testing.T) {
 	// When aliased is provided, should return aliased target
 	assert.Equal(t, "ContactInfo", GetRelationTargetName("WorkContact", "ContactInfo"))
-	assert.Equal(t, "Project", GetRelationTargetName("WorkProjects", "Project"))
+	assert.Equal(t, "Project", GetRelationTargetName("WorkProject", "Project"))
 	assert.Equal(t, "User", GetRelationTargetName("Author", "User"))
 
 	// When aliased is empty, should return relationship name

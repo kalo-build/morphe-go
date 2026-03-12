@@ -59,6 +59,9 @@ func (e Entity) validateAllIdentifiers() error {
 			return ErrNoMorpheEntityIdentifierFields(e.Name, identifierName)
 		}
 		for _, fieldName := range identifier.Fields {
+			if strings.HasPrefix(fieldName, "rel:") {
+				return ErrMorpheEntityIdentifierRelPrefix(e.Name, identifierName, fieldName)
+			}
 			if _, exists := e.Fields[fieldName]; !exists {
 				return ErrUnknownMorpheEntityIdentifierField(e.Name, identifierName, fieldName)
 			}

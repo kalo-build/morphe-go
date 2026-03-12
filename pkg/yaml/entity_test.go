@@ -992,3 +992,39 @@ func TestEntityValidate_AliasedFieldPath_NonPolyMalformedAlias(t *testing.T) {
 	assert.Contains(t, err.Error(), "aliased target model .Contact")
 	assert.Contains(t, err.Error(), "does not exist")
 }
+
+func TestEntityValidate_IdentifierRelPrefixRejected(t *testing.T) {
+	personModel := Model{
+		Name: "Person",
+		Fields: map[string]ModelField{
+			"ID":   {Type: "AutoIncrement"},
+			"Name": {Type: "String"},
+		},
+		Identifiers: map[string]ModelIdentifier{
+			"primary": {Fields: []string{"ID"}},
+		},
+	}
+
+	entity := Entity{
+		Name: "Person",
+		Fields: map[string]EntityField{
+			"ID":   {Type: "Person.ID"},
+			"Name": {Type: "Person.Name"},
+		},
+		Identifiers: map[string]EntityIdentifier{
+			"primary": {Fields: []string{"ID"}},
+			"test":    {Fields: []string{"rel:Company"}},
+		},
+		Related: map[string]EntityRelation{
+			"Company": {Type: "ForOne"},
+		},
+	}
+
+	allModels := map[string]Model{"Person": personModel}
+	allEntities := map[string]Entity{"Person": entity}
+
+	err := entity.Validate(allEntities, allModels, map[string]Enum{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "rel:")
+	assert.Contains(t, err.Error(), "not supported for entity identifiers")
+}

@@ -25,8 +25,9 @@ func (m Model) Validate(allEnums map[string]Enum) error {
 	if len(m.Identifiers) == 0 {
 		return ErrNoMorpheModelIdentifiers
 	}
-	if len(allEnums) == 0 {
-		return nil
+
+	if err := m.validateAllIdentifiers(); err != nil {
+		return err
 	}
 
 	fieldTypesErr := m.validateFieldTypes(allEnums)
@@ -118,6 +119,10 @@ func (m Model) isRelationHas(relationType string) bool {
 	return strings.HasPrefix(strings.ToLower(relationType), "has")
 }
 
+func (m Model) isRelationOne(relationType string) bool {
+	return strings.Contains(strings.ToLower(relationType), "one")
+}
+
 func (m Model) isRelationPoly(relationType string) bool {
 	lowerType := strings.ToLower(relationType)
 	return (m.isRelationFor(relationType) || m.isRelationHas(relationType)) &&
@@ -143,10 +148,35 @@ func (m Model) DeepClone() Model {
 	return modelCopy
 }
 
+func (m Model) validateAllIdentifiers() error {
+	for identifierName, identifier := range m.Identifiers {
+		for _, field := range identifier.Fields {
+			if strings.HasPrefix(field, "rel:") {
+				relationName := strings.TrimPrefix(field, "rel:")
+				relation, exists := m.Related[relationName]
+				if !exists {
+					return ErrMorpheModelIdentifierRelationNotFound(m.Name, identifierName, relationName)
+				}
+				if !m.isRelationFor(relation.Type) || !m.isRelationOne(relation.Type) {
+					return ErrMorpheModelIdentifierRelationInvalidType(m.Name, identifierName, relationName, relation.Type)
+				}
+			} else {
+				if _, exists := m.Fields[field]; !exists {
+					return ErrMorpheModelIdentifierFieldNotFound(m.Name, identifierName, field)
+				}
+			}
+		}
+	}
+	return nil
+}
+
 func (m Model) GetIdentifierFields() []ModelField {
 	var fields []ModelField
 	for _, identifier := range m.Identifiers {
 		for _, fieldName := range identifier.Fields {
+			if strings.HasPrefix(fieldName, "rel:") {
+				continue
+			}
 			idField, fieldExists := m.Fields[fieldName]
 			if !fieldExists {
 				log.Printf("identifier field '%s' does not exist in model '%s'", fieldName, m.Name)
