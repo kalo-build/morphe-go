@@ -71,3 +71,7 @@ func ErrMorpheEntityUnknownAliasedTarget(entityName string, relationName string,
 func ErrMorpheEntityPolymorphicInverseValidation(entityName string, relationName string, aliasedTarget string, through string, reason string) error {
 	return fmt.Errorf("morphe entity '%s' polymorphic inverse relation '%s' (aliased: %s, through: %s): %s", entityName, relationName, aliasedTarget, through, reason)
 }
+
+func ErrMorpheEntityIdentifierRelPrefix(entityName string, identifierName string, fieldName string) error {
+	return fmt.Errorf("entity '%s' identifier '%s' field '%s' uses 'rel:' prefix which is not supported for entity identifiers", entityName, identifierName, fieldName)
+}
