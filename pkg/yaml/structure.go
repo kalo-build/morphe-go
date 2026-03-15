@@ -9,18 +9,22 @@ type Structure struct {
 	Fields map[string]StructureField `yaml:"fields"`
 }
 
-func (s Structure) Validate(allEnums map[string]Enum) error {
+func (s Structure) Validate(allEnums map[string]Enum, allStructures ...map[string]Structure) error {
 	if s.Name == "" {
 		return ErrNoMorpheStructureName
 	}
 	if len(s.Fields) == 0 {
 		return ErrNoMorpheStructureFields
 	}
-	if len(allEnums) == 0 {
+	if len(allEnums) == 0 && len(allStructures) == 0 {
 		return nil
 	}
 
-	fieldTypesErr := s.validateFieldTypes(allEnums)
+	var structures map[string]Structure
+	if len(allStructures) > 0 {
+		structures = allStructures[0]
+	}
+	fieldTypesErr := s.validateFieldTypes(allEnums, structures)
 	if fieldTypesErr != nil {
 		return fieldTypesErr
 	}
@@ -37,8 +41,8 @@ func (s Structure) DeepClone() Structure {
 	return structureCopy
 }
 
-func (s Structure) validateFieldTypes(allEnums map[string]Enum) error {
-	if len(allEnums) == 0 {
+func (s Structure) validateFieldTypes(allEnums map[string]Enum, allStructures map[string]Structure) error {
+	if len(allEnums) == 0 && len(allStructures) == 0 {
 		return nil
 	}
 	for fieldName, fieldDef := range s.Fields {
@@ -48,10 +52,15 @@ func (s Structure) validateFieldTypes(allEnums map[string]Enum) error {
 		}
 
 		fieldTypeString := string(fieldType)
-		_, enumTypeExists := allEnums[fieldTypeString]
-		if !enumTypeExists {
-			return ErrMorpheStructureUnknownFieldType(fieldName, fieldTypeString)
+		if _, ok := allEnums[fieldTypeString]; ok {
+			continue
 		}
+		if allStructures != nil {
+			if _, ok := allStructures[fieldTypeString]; ok {
+				continue
+			}
+		}
+		return ErrMorpheStructureUnknownFieldType(fieldName, fieldTypeString)
 	}
 	return nil
 }
